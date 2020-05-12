@@ -62,18 +62,18 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
     // create topview image
     cv::Mat topviewImg(imageSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
-    for (auto it1 = boundingBoxes.begin(); it1 != boundingBoxes.end(); ++it1) {
+    for (const auto& box : boundingBoxes) {
         // create randomized color for current 3D object
-        cv::RNG rng(it1->boxID);
+        cv::RNG rng(box.boxID);
         cv::Scalar currColor = cv::Scalar(rng.uniform(0, 150), rng.uniform(0, 150), rng.uniform(0, 150));
 
         // plot Lidar points into top view image
         int top = 1e8, left = 1e8, bottom = 0.0, right = 0.0;
         float xwmin = 1e8, ywmin = 1e8, ywmax = -1e8;
-        for (auto it2 = it1->lidarPoints.begin(); it2 != it1->lidarPoints.end(); ++it2) {
+        for (const auto& lidarPoint : box.lidarPoints) {
             // world coordinates
-            float xw = (*it2).x; // world position in m with x facing forward from sensor
-            float yw = (*it2).y; // world position in m with y facing left from sensor
+            float xw = lidarPoint.x; // world position in m with x facing forward from sensor
+            float yw = lidarPoint.y; // world position in m with y facing left from sensor
             xwmin = xwmin < xw ? xwmin : xw;
             ywmin = ywmin < yw ? ywmin : yw;
             ywmax = ywmax > yw ? ywmax : yw;
@@ -97,7 +97,7 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
 
         // augment object with some key data
         char str1[200], str2[200];
-        sprintf(str1, "id=%d, #pts=%d", it1->boxID, (int) it1->lidarPoints.size());
+        sprintf(str1, "id=%d, #pts=%d", box.boxID, (int) box.lidarPoints.size());
         putText(topviewImg, str1, cv::Point2f(left - 250, bottom + 50), cv::FONT_ITALIC, 2, currColor);
         sprintf(str2, "xmin=%2.2f m, yw=%2.2f m", xwmin, ywmax - ywmin);
         putText(topviewImg, str2, cv::Point2f(left - 250, bottom + 125), cv::FONT_ITALIC, 2, currColor);
@@ -113,7 +113,7 @@ void show3DObjects(std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, 
 
     // display image
     string windowName = "3D Objects";
-    cv::namedWindow(windowName, 1);
+    cv::namedWindow(windowName, cv::WINDOW_GUI_NORMAL);
     cv::imshow(windowName, topviewImg);
 
     if (bWait) {
