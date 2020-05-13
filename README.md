@@ -46,7 +46,8 @@ To do this, you will complete four major tasks:
 
 ## Matching 3D Objects
 
-First, regions of interests are obtained from a [YOLO](https://pjreddie.com/darknet/yolo/) v3
+First, regions of interests are obtained in `detectObjects()`
+using a [YOLO](https://pjreddie.com/darknet/yolo/) v3
 detector that was trained on the [COCO](http://cocodataset.org/) ("_Common Objects in Context_")
 data set. The COCO dataset contains a couple of classes relevant to street scene
 understanding, such as
@@ -56,16 +57,17 @@ understanding, such as
 - car, motorbike, bus, truck,
 - traffic light, stop sign
 
-and more. Since a pretrained network was used, detections were trimmed
+and more. Since a pre-trained network was used, detections were trimmed
 after the fact to only provide `car` class instances, and all predictions
 with a confidence lower than 0.2 were discarded. This yielded the following
 result:
 
 ![](.readme/yolo-cars.png)
 
-Next, the LiDAR a point cloud obtained from a [Velodyne HDL-64E](http://velodynelidar.com/lidar/hdlproducts/hdl64e.aspx) 
+Next, the LiDAR a point cloud obtained in `loadLidarFromFile()`
+from a [Velodyne HDL-64E](http://velodynelidar.com/lidar/hdlproducts/hdl64e.aspx) 
 sensor (data was given as part of the [KITTI](http://www.cvlibs.net/datasets/kitti/) dataset)
-was cropped to contain only points that lie
+was cropped in `cropLidarPoints()` to contain only points that lie
 
 - within the ego lane,
 - about 2 m behind up to 20 m ahead of the car, and
@@ -73,18 +75,19 @@ was cropped to contain only points that lie
 
 A planar road without lateral curvature was assumed for simplicity.
 After this, all LiDAR not lying within one of the previously detected
-rectangular regions of interest (ROI) were discarded. To counter rough ROI
-shapes and oversized boxes (and artifact of the neural network's output),
-each detected rectangle was reduced by approximately 20% along width and
-height. The bounding boxes were then shrinked to exactly contain all LiDAR
-points. Due to the previous cropping, only one box is obtained as a result:
+rectangular regions of interest (ROI) were discarded in `clusterLidarWithROI()`.
+To counter rough ROI shapes and oversized boxes (and artifact of the neural
+network's output), each detected rectangle was reduced by approximately 20%
+along width and height. The bounding boxes were then shrinked to exactly contain
+all LiDAR points. Due to the previous cropping, only one box is obtained as a result:
 
 ![](.readme/lidar-boxed.png)
 
-Each LiDAR point is then associated with the bounding box it's confined in.
+During this process, each LiDAR point is also associated with the bounding box it is confined in.
 
-In order to perform image feature detection, a mask was obtained for from
-the ROIs to focus only on relevant areas of the image:
+In order to perform image feature detection, a mask was obtained in `createKeypointMask()`
+from the ROIs to focus only on relevant areas of the image (the cars, as far as this
+project is concerned):
 
 ![](.readme/keypoint-mask.png)
 
@@ -96,13 +99,14 @@ A [FAST](https://en.wikipedia.org/wiki/Features_from_accelerated_segment_test)
 feature detector using BRIEF keypoints was selected (note that this
 combination almost resembles [ORB](https://en.wikipedia.org/wiki/Oriented_FAST_and_rotated_BRIEF),
 which was however discarded as part of the conclusions of the [2D Feature Tracking](https://github.com/sunsided/SFND_2D_Feature_Tracking)
-project).
+project) and used to obtain keypoints in `detectKeypointsModern()`
+and provide descriptors in `describeKeypoints()`.
 
-Keypoints were then matched across with the previous frame ...
+Keypoints were then matched with the previous frame in `matchDescriptors()` ...
 
 ![](.readme/keypoints-fast-brief.png)
 
-... in order to determine ROI / bounding box correspondences across frames.
+... in order to determine ROI / bounding box correspondences across frames in `matchBoundingBoxes()`.
 By this, tracking of a 2D object through time is implemented.
 
 Since LiDAR points were already associated with bounding boxes as
