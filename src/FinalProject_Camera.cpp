@@ -171,7 +171,6 @@ int main(int argc, const char *argv[]) {
 
         std::cout << "#3 : CROP LiDAR POINTS done" << std::endl;
 
-
         /* CLUSTER LiDAR POINT CLOUD */
 
         // associate LiDAR points with camera-based ROI
@@ -200,6 +199,12 @@ int main(int argc, const char *argv[]) {
 
         // We will only allow keypoints to be found within the bounding boxes.
         const auto keypointMask = createKeypointMask(*currentDataBuffer);
+
+#if 0
+        cv::namedWindow("Keypoint Mask");
+        cv::imshow("Keypoint Mask", keypointMask);
+        cv::waitKey(0);
+#endif
 
         // extract 2D keypoints from current image
         std::vector<cv::KeyPoint> keypoints; // create empty feature list for current image
@@ -268,7 +273,7 @@ int main(int argc, const char *argv[]) {
             currentDataBuffer->kptMatches = matches;
 
             // visualize matches between current and previous image
-            bVis = false;
+            bVis = true;
             if (bVis && hasPreviousDataBuffer) {
                 visualizeMatches(currentDataBuffer, previousDataBuffer, matches);
 
