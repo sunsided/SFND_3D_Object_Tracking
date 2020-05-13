@@ -33,6 +33,8 @@ void dropKeypointsNotWithinAnyBoundingBox(
 cv::Mat
 createKeypointMask(const DataFrame &currentDataBuffer);
 
+BoundingBox *getBoxById(std::vector<BoundingBox> &boxes, const int &boxId);
+
 /* MAIN PROGRAM */
 int main(int argc, const char *argv[]) {
     /* INIT VARIABLES AND DATA STRUCTURES */
@@ -273,7 +275,7 @@ int main(int argc, const char *argv[]) {
             currentDataBuffer->kptMatches = matches;
 
             // visualize matches between current and previous image
-            bVis = true;
+            bVis = false;
             if (bVis && hasPreviousDataBuffer) {
                 visualizeMatches(currentDataBuffer, previousDataBuffer, matches);
 
@@ -305,23 +307,10 @@ int main(int argc, const char *argv[]) {
             // loop over all BB match pairs
             for (auto it1 = currentDataBuffer->bbMatches.begin();
                  it1 != currentDataBuffer->bbMatches.end(); ++it1) {
-                // find bounding boxes associates with current match
-                BoundingBox *prevBB, *currBB;
-                for (auto &box : currentDataBuffer->boundingBoxes) {
-                    if (it1->second == box.boxID) // check whether current match partner corresponds to this BB
-                    {
-                        currBB = &box;
-                        break;
-                    }
-                }
 
-                for (auto &box : previousDataBuffer->boundingBoxes) {
-                    if (it1->first == box.boxID) // check whether current match partner corresponds to this BB
-                    {
-                        prevBB = &box;
-                        break;
-                    }
-                }
+                // find bounding boxes associates with current match
+                auto *currBB = getBoxById(currentDataBuffer->boundingBoxes, it1->second);
+                auto *prevBB = getBoxById(previousDataBuffer->boundingBoxes, it1->first);
 
                 std::cout << "Matched box #" << prevBB->boxID
                           << " (" << prevBB->lidarPoints.size() << " LiDAR points)"
@@ -380,12 +369,23 @@ int main(int argc, const char *argv[]) {
     return 0;
 }
 
+BoundingBox* getBoxById(std::vector<BoundingBox> &boxes, const int &boxId) {
+    BoundingBox *currBB;
+    for (auto &box : boxes) {
+        if (boxId == box.boxID) { // check whether current match partner corresponds to this BB
+            currBB = &box;
+            break;
+        }
+    }
+    return currBB;
+}
+
 cv::Mat
 createKeypointMask(const DataFrame &currentDataBuffer) {
-    const auto& srcImg = currentDataBuffer.cameraImg;
+    const auto &srcImg = currentDataBuffer.cameraImg;
     cv::Mat keypointMask(srcImg.size[0], srcImg.size[1], CV_8UC1);
     keypointMask.setTo(0);
-    for (const auto& box : currentDataBuffer.boundingBoxes) {
+    for (const auto &box : currentDataBuffer.boundingBoxes) {
         cv::rectangle(keypointMask, box.roi, cv::Scalar(255, 255, 255), -1);
     }
     return keypointMask;
