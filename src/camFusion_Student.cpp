@@ -38,9 +38,48 @@ namespace {
                   [](const LidarPoint &pt1, const LidarPoint &pt2) {
                       return pt1.x < pt2.x;
                   });
+
         const auto medianIndex = points.size() / 2;
-        return points[medianIndex];
+
+        const auto oddNumberOfPoints = (points.size() & 1U) == 1;
+        assert((points.size() % 2 != 0) == oddNumberOfPoints);
+
+        if (oddNumberOfPoints) {
+            return points[medianIndex];
+        }
+
+        const auto leftMedian = points[medianIndex - 1];
+        const auto rightMedian = points[medianIndex];
+
+        const auto x = (leftMedian.x + rightMedian.x) * 0.5;
+        const auto y = (leftMedian.y + rightMedian.y) * 0.5;
+        const auto z = (leftMedian.z + rightMedian.z) * 0.5;
+        const auto r = (leftMedian.r + rightMedian.r) * 0.5;
+        return {x, y, z, r};
     }
+
+    double containedPointMeanDistance(const BoundingBox &boundingBox, const std::vector<cv::DMatch> &matches,
+                                      const std::vector<cv::KeyPoint> &kptsPrev,
+                                      const std::vector<cv::KeyPoint> &kptsCurr) {
+        auto ssd = 0.0;
+        auto count = 0.0;
+        for (const auto &match : matches) {
+            const auto currPt = kptsCurr[match.trainIdx];
+            const auto prevPt = kptsPrev[match.queryIdx];
+            if (!boundingBox.roi.contains(currPt.pt)) continue;
+
+            ssd += cv::norm(currPt.pt - prevPt.pt);
+            count += 1.0;
+        }
+
+        return ssd / count;
+    }
+
+    // https://stackoverflow.com/a/253874/195651
+    bool essentiallyEqual(double a, double b, double epsilon) {
+        return std::abs(a - b) <= ((std::abs(a) > std::abs(b) ? std::abs(b) : std::abs(a)) * epsilon);
+    }
+
 }
 
 
@@ -165,14 +204,86 @@ show3DObjects(const std::string &tag, std::vector<BoundingBox> &boundingBoxes, c
 // associate a given bounding box with the keypoints it contains
 void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev,
                               std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches) {
-    // ...
+
+    const double averageDistance = containedPointMeanDistance(boundingBox, kptMatches, kptsPrev, kptsCurr);
+    const double tolerance = averageDistance * 1.25;
+
+    for (const auto &match : kptMatches) {
+        const auto currPt = kptsCurr[match.trainIdx];
+        const auto prevPt = kptsPrev[match.queryIdx];
+        if (!boundingBox.roi.contains(currPt.pt)) continue;
+
+        const auto d = cv::norm(currPt.pt - prevPt.pt);
+        if (d >= tolerance) continue;
+
+        boundingBox.keypoints.push_back(currPt);
+        boundingBox.kptMatches.push_back(match);
+    }
 }
 
 
 // Compute time-to-collision (TTC) based on keypoint correspondences in successive images
 void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr,
                       std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg) {
-    // ...
+
+    // If there are no keypoints, there are no ratios, and thus there is no velocity to be calculated.
+    // Likewise, we need at least two correspondences to determine a relative distance change.
+    if (kptMatches.size() < 2) {
+        TTC = NAN;
+        return;
+    }
+
+    // Some constants used for checking in order to prevent
+    // division of too small numbers by too big numbers, or dividing
+    // by zero altogether.
+    const auto minDistPx = 100.0; // minimum required distance in pixels
+    const auto epsilon = 1e-4;
+
+    // Assuming observed distances in images are independent of direction,
+    // we can determine the change of keypoint distance between frames
+    // to determine a change in scale and by that a change in physical distance.
+    std::vector<double> distanceRatios;
+
+    // For each keypoint pair
+    for (auto it1 = kptMatches.begin(); it1 != kptMatches.end() - 1; ++it1) {
+        const auto currKpToken = kptsCurr.at(it1->trainIdx);
+        const auto prevKpToken = kptsPrev.at(it1->queryIdx);
+
+        for (auto it2 = kptMatches.begin() + 1; it2 != kptMatches.end(); ++it2) {
+            const auto currKp = kptsCurr.at(it2->trainIdx);
+            const auto prevKp = kptsPrev.at(it2->queryIdx);
+
+            // compute distances and distance ratios
+            const auto distCurr = cv::norm(currKpToken.pt - currKp.pt);
+            const auto distPrev = cv::norm(prevKpToken.pt - prevKp.pt);
+
+            // avoid division by zero
+            if (distPrev <= epsilon || distCurr < minDistPx) continue;
+
+            const auto distRatio = distCurr / distPrev;
+            distanceRatios.push_back(distRatio);
+        }
+    }
+
+    assert(!distanceRatios.empty());
+
+    // Use the median distance ratio to obtain a stable value.
+    const auto medianIndex = distanceRatios.size() / 2;
+    std::sort(distanceRatios.begin(), distanceRatios.end());
+    const auto distanceRatio = distanceRatios.size() % 2 == 0
+                               ? (distanceRatios[medianIndex - 1] + distanceRatios[medianIndex]) / 2.0
+                               : distanceRatios[medianIndex];
+
+    // Note that if the median distance ratio is 1 (e.g. because no keypoints change),
+    // then no velocity can be observed and the function below would result in a division by zero.
+    // In this case, it takes infinity seconds to collide - so we make it explicit here.
+    if (essentiallyEqual(distanceRatio, 1.0, 1e-6)) {
+        TTC = std::numeric_limits<double>::infinity();
+        return;
+    }
+
+    const auto dT = 1 / frameRate;
+    TTC = -dT / (1 - distanceRatio);
 }
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,

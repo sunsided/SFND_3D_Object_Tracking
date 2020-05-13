@@ -8,6 +8,12 @@
 
 struct LidarPoint { // single LiDAR point in space
     double x, y, z, r; // x,y,z in [m], r is point reflectivity
+
+    LidarPoint() = default;
+
+    LidarPoint(double x, double y, double z, double r)
+        : x{x}, y{y}, z{z}, r{r}
+        {}
 };
 
 struct BoundingBox { // bounding box around a classified object (contains both 2D and 3D data)
