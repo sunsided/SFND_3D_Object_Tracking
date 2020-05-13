@@ -231,7 +231,7 @@ void describeKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::M
 
 
 // Detect keypoints in image using the traditional Shi-Thomasi detector
-void detectKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis, bool verbose) {
+void detectKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask, bool bVis, bool verbose) {
     // compute detector parameters based on image size
     int blockSize = 4;       //  size of an average block for computing a derivative covariation matrix over each pixel neighborhood
     double maxOverlap = 0.0; // max. permissible overlap between two features in %
@@ -243,7 +243,7 @@ void detectKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img
 
     // Apply corner detection
     std::vector<cv::Point2f> corners;
-    cv::goodFeaturesToTrack(img, corners, maxCorners, qualityLevel, minDistance, cv::Mat(), blockSize, false, k);
+    cv::goodFeaturesToTrack(img, corners, maxCorners, qualityLevel, minDistance, mask, blockSize, false, k);
 
     // add corners to result vector
     for (const auto &corner : corners) {
@@ -265,7 +265,7 @@ void detectKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img
     }
 }
 
-void detectKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis, bool verbose) {
+void detectKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask, bool bVis, bool verbose) {
     const auto blockSize = 4;
     const auto apertureSize = 3;
     const auto k = 0.04;
@@ -286,9 +286,11 @@ void detectKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, b
     // generate a candidate keypoint and then determine whether we should keep or discard it.
     for (auto y = 0; y < norm.rows; ++y) {
         const auto *row = norm.ptr<float>(y);
+        const auto *maskRow = mask.ptr<uint8_t>(y);
         for (auto x = 0; x < norm.cols; ++x) {
             const auto response = row[x];
-            if (response <= minResponse) {
+            const auto maskValue = maskRow[x];
+            if (response <= minResponse || maskValue < 127) {
                 continue;
             }
 
@@ -334,11 +336,11 @@ void detectKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, b
 }
 
 void
-detectKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const std::string &detectorType, bool bVis, bool verbose) {
+detectKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask, const std::string &detectorType, bool bVis, bool verbose) {
     const auto detector = createDetector(detectorType);
     assert(detector != nullptr);
 
-    detector->detect(img, keypoints);
+    detector->detect(img, keypoints, mask);
 
     if (bVis) {
         cv::Mat visImage = img.clone();

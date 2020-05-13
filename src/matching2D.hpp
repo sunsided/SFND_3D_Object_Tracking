@@ -19,16 +19,15 @@
 #include "dataStructures.h"
 
 
-void detectKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis = false,
-                           bool verbose = false);
+void detectKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask,
+                           bool bVis = false, bool verbose = false);
 
-void detectKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis = false,
-                              bool verbose = false);
+void detectKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask,
+                              bool bVis = false, bool verbose = false);
 
 void
-detectKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const std::string &detectorType,
-                      bool bVis = false,
-                      bool verbose = false);
+detectKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask,
+                      const std::string &detectorType, bool bVis = false, bool verbose = false);
 
 void
 describeKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors,

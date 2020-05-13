@@ -30,6 +30,9 @@ void dropKeypointsNotWithinAnyBoundingBox(
         const std::_Deque_iterator<DataFrame, DataFrame &, DataFrame *>::_Self &currentDataBuffer,
         std::vector<cv::KeyPoint> &keypoints);
 
+cv::Mat
+createKeypointMask(const DataFrame &currentDataBuffer);
+
 /* MAIN PROGRAM */
 int main(int argc, const char *argv[]) {
     /* INIT VARIABLES AND DATA STRUCTURES */
@@ -195,20 +198,25 @@ int main(int argc, const char *argv[]) {
         cv::Mat imgGray;
         cv::cvtColor(currentDataBuffer->cameraImg, imgGray, cv::COLOR_BGR2GRAY);
 
+        // We will only allow keypoints to be found within the bounding boxes.
+        const auto keypointMask = createKeypointMask(*currentDataBuffer);
+
         // extract 2D keypoints from current image
         std::vector<cv::KeyPoint> keypoints; // create empty feature list for current image
-        std::string detectorType = "SHITOMASI";
+        std::string detectorType = "FAST";
 
         if (detectorType == "SHITOMASI") {
-            detectKeypointsShiTomasi(keypoints, imgGray, false, false);
+            detectKeypointsShiTomasi(keypoints, imgGray, keypointMask, false, false);
         } else if (detectorType == "HARRIS") {
-            detectKeypointsHarris(keypoints, imgGray, bVis, false);
+            detectKeypointsHarris(keypoints, imgGray, keypointMask, bVis, false);
         } else {
-            detectKeypointsModern(keypoints, imgGray, detectorType, bVis, false);
+            detectKeypointsModern(keypoints, imgGray, keypointMask, detectorType, bVis, false);
         }
 
+#if 0
         // discard all keypoints that are not within any bounding box
         dropKeypointsNotWithinAnyBoundingBox(currentDataBuffer, keypoints);
+#endif
 
         // optional : limit number of keypoints (helpful for debugging and learning)
         bool bLimitKpts = false;
@@ -248,7 +256,7 @@ int main(int argc, const char *argv[]) {
             /* MATCH KEYPOINT DESCRIPTORS */
 
             std::vector<cv::DMatch> matches;
-            std::string matcherType = "MAT_BF";        // MAT_BF, MAT_FLANN
+            std::string matcherType = "MAT_FLANN";        // MAT_BF, MAT_FLANN
             std::string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
             std::string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
 
@@ -365,6 +373,17 @@ int main(int argc, const char *argv[]) {
     } // eof loop over all images
 
     return 0;
+}
+
+cv::Mat
+createKeypointMask(const DataFrame &currentDataBuffer) {
+    const auto& srcImg = currentDataBuffer.cameraImg;
+    cv::Mat keypointMask(srcImg.size[0], srcImg.size[1], CV_8UC1);
+    keypointMask.setTo(0);
+    for (const auto& box : currentDataBuffer.boundingBoxes) {
+        cv::rectangle(keypointMask, box.roi, cv::Scalar(255, 255, 255), -1);
+    }
+    return keypointMask;
 }
 
 void dropKeypointsNotWithinAnyBoundingBox(
