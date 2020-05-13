@@ -121,7 +121,7 @@ Note that at this point of the project, a Time-to-Collision estimate
 was not yet generated, resulting in a reported `0.000000 s` value in the
 referenced picture.
 
-## Computing Lidar-based Time-to-Collision
+## Computing LiDAR-based Time-to-Collision
 
 Due to the measurements of physical distance of the car in front
 of the ego car we can now utilize changes in distance to approximate
