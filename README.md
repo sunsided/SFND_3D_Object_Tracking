@@ -120,3 +120,20 @@ detector can be obtained, which effectively allows tracking 3D objects
 Note that at this point of the project, a Time-to-Collision estimate
 was not yet generated, resulting in a reported `0.000000 s` value in the
 referenced picture.
+
+## Computing Lidar-based Time-to-Collision
+
+Due to the measurements of physical distance of the car in front
+of the ego car we can now utilize changes in distance to approximate
+velocity and, by extension, time-to-collision.  
+
+Under the assumption of a constant velocity model as an approximation 
+of the velocity during small time steps ΔT, and by making use of
+the clustered LiDAR points of the car in front of the ego car,
+we can utilize the change of the median X ("front") distances between
+frames to provide a TTC estimate in `computeTTCLidar()`:
+
+```cpp
+const auto dT = 1 / frameRate;
+const auto TTC = dT * currX / (prevX - currX);
+```
