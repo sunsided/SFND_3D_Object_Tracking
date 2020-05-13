@@ -9,6 +9,46 @@
 #include "dataStructures.h"
 
 
+namespace {
+
+    template<typename type>
+    int ifloor(type value) {
+        return static_cast<int>(std::floor(value));
+    }
+
+    using box_id_type = decltype(BoundingBox::boxID);
+
+    std::vector<box_id_type>
+    findBoxIdsContainingKeypoint(const std::vector<BoundingBox> &boxes, const cv::KeyPoint &keyPoint) {
+        const auto numBoxes = boxes.size();
+        const auto prevPoint = pointFromKeypoint(keyPoint);
+
+        std::vector<box_id_type> boxIds;
+        for (auto b = 0; b < numBoxes; ++b) {
+            const auto &box = boxes[b];
+            if (!box.roi.contains(prevPoint)) continue;
+            boxIds.push_back(box.boxID);
+        }
+
+        return boxIds;
+    }
+
+    LidarPoint getMedianPointByXCoordinate(std::vector<LidarPoint> &points) {
+        std::sort(points.begin(), points.end(),
+                  [](const LidarPoint &pt1, const LidarPoint &pt2) {
+                      return pt1.x < pt2.x;
+                  });
+        const auto medianIndex = points.size() / 2;
+        return points[medianIndex];
+    }
+}
+
+
+cv::Point pointFromKeypoint(const cv::KeyPoint &keyPoint) {
+    return {ifloor(keyPoint.pt.x), ifloor(keyPoint.pt.y)};
+}
+
+
 // Create groups of LiDAR points whose projection into the camera falls into the same bounding box
 void
 clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<LidarPoint> &lidarPoints, float shrinkFactor,
@@ -17,7 +57,7 @@ clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<LidarPo
     cv::Mat X(4, 1, cv::DataType<double>::type);
     cv::Mat Y(3, 1, cv::DataType<double>::type);
 
-    for (const auto& lidarPoint : lidarPoints) {
+    for (const auto &lidarPoint : lidarPoints) {
         // assemble vector for matrix-vector-multiplication
         X.at<double>(0, 0) = lidarPoint.x;
         X.at<double>(1, 0) = lidarPoint.y;
@@ -56,7 +96,9 @@ clusterLidarWithROI(std::vector<BoundingBox> &boundingBoxes, std::vector<LidarPo
 }
 
 
-void show3DObjects(const std::string& tag, std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, cv::Size imageSize, bool bWait) {
+void
+show3DObjects(const std::string &tag, std::vector<BoundingBox> &boundingBoxes, cv::Size worldSize, cv::Size imageSize,
+              bool bWait) {
     // create topview image
     cv::Mat topviewImg(imageSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
@@ -133,46 +175,38 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
     // ...
 }
 
-
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC) {
-    // ...
+
+    // Our main assumption is that we can find a stable estimate of the distance
+    // to our car by obtaining the median of all points along the X axis.
+    // Note that in our setup, the X direction is "forward" and thus
+    // extends into the depth of the image.
+
+    const auto medianPre = getMedianPointByXCoordinate(lidarPointsPrev);
+    const auto prevX = medianPre.x;
+
+    const auto medianCurr = getMedianPointByXCoordinate(lidarPointsCurr);
+    const auto currX = medianCurr.x;
+
+    // We can now use a constant velocity model to calculate an
+    // estimate for TTC. Note that in this consideration,
+    // d(t + ΔT) < d(t) if the car in front of ego is braking.
+    // Another relevant assumption here is that we keep a constant ΔT
+    // between frames.
+
+    // Given that
+    //      TTC = d1 / v_0
+    // and
+    //      d(t + ΔT) = d(t) - v0 * ΔT
+    //      v0 = ( d(t) - d(t + ΔT) ) / ΔT
+    //      v0 = (  d0  -     d1    ) / ΔT
+    // we find by substitution that
+    //      TTC = ΔT * d1 / ( d0 - d1)
+
+    const auto dT = 1 / frameRate;
+    TTC = dT * currX / (prevX - currX);
 }
-
-
-namespace {
-
-    template<typename type>
-    int ifloor(type value) {
-        return static_cast<int>(std::floor(value));
-    }
-
-}
-
-    cv::Point pointFromKeypoint(const cv::KeyPoint& keyPoint) {
-        return {ifloor(keyPoint.pt.x), ifloor(keyPoint.pt.y)};
-    }
-
-namespace {
-
-    using box_id_type = decltype(BoundingBox::boxID);
-
-    std::vector<box_id_type> findBoxIdsContainingKeypoint(const std::vector<BoundingBox>& boxes, const cv::KeyPoint& keyPoint) {
-        const auto numBoxes = boxes.size();
-        const auto prevPoint = pointFromKeypoint(keyPoint);
-
-        std::vector<box_id_type> boxIds;
-        for (auto b = 0; b < numBoxes; ++b) {
-            const auto& box = boxes[b];
-            if (!box.roi.contains(prevPoint)) continue;
-            boxIds.push_back(box.boxID);
-        }
-
-        return boxIds;
-    }
-
-}
-
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame,
                         DataFrame &currFrame) {
@@ -208,14 +242,14 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
 
     // Link up the ID of the box in the previous frame
     // with the ID of the box with the highest number of matching keypoints in this frame.
-    for (const auto& pair : correspondences) {
-        const auto& prevBoxId = pair.first;
+    for (const auto &pair : correspondences) {
+        const auto &prevBoxId = pair.first;
         assert(!pair.second.empty());
 
         using pair_type = decltype(pair.second)::value_type;
-        const auto& currBoxMaxMatches = std::max_element(
+        const auto &currBoxMaxMatches = std::max_element(
                 pair.second.begin(), pair.second.end(),
-                [] (const pair_type& entry1, const pair_type& entry2) {
+                [](const pair_type &entry1, const pair_type &entry2) {
                     return entry1.second < entry2.second;
                 });
 

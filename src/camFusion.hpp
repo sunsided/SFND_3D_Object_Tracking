@@ -24,7 +24,7 @@ void show3DObjects(const std::string& tag, std::vector<BoundingBox> &boundingBox
 void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr,
                       std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg = nullptr);
 
-void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
-                     std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC);
+void computeTTCLidar(std::vector<LidarPoint> &pt1,
+                     std::vector<LidarPoint> &pt2, double frameRate, double &TTC);
 
 #endif /* camFusion_hpp */
