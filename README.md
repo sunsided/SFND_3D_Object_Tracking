@@ -137,3 +137,12 @@ frames to provide a TTC estimate in `computeTTCLidar()`:
 const auto dT = 1 / frameRate;
 const auto TTC = dT * currX / (prevX - currX);
 ```
+
+Note that the constant-velocity model should be avoided in real scenarios
+in favor of (at least) a constant-acceleration model. By using a ROI
+generator that is capable of recognizing license plates, we might also
+provide a more stable focus area for our computation that has 
+
+- a lower chance of providing stray LiDAR points (due to reduced region size),
+- a higher signal strength due to high reflectivity of license plates in general,
+- less variance in the X coordinates. 
