@@ -123,9 +123,9 @@ referenced picture.
 
 ## Computing LiDAR-based Time-to-Collision
 
-Due to the measurements of physical distance of the car in front
-of the ego car we can now utilize changes in distance to approximate
-velocity and, by extension, time-to-collision.  
+Due to the availability of LiDAR-based measurements of physical distance
+of the car in front of the ego car we can now utilize changes in distance
+to approximate relative velocity and, by extension, time-to-collision.  
 
 Under the assumption of a constant velocity model as an approximation 
 of the velocity during small time steps ΔT, and by making use of
