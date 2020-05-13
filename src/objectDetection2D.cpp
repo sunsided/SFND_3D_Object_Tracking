@@ -23,6 +23,14 @@ void detectObjects(cv::Mat &img, std::vector<BoundingBox> &bBoxes, float confThr
     string line;
     while (getline(ifs, line)) classes.push_back(line);
 
+    // Nasty hack, but we do know that in COCO there's a class called "car".
+    auto carClassIt = std::find(classes.begin(), classes.end(), "car");
+    assert(carClassIt != classes.end());
+
+    // just to make sure our assumption holds - "car" is class 2 in COCO
+    const auto carClass = std::distance(classes.begin(), carClassIt);
+    assert(carClass == 2);
+
     // load neural network
     cv::dnn::Net net = cv::dnn::readNetFromDarknet(modelConfiguration, modelWeights);
     net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
@@ -55,29 +63,32 @@ void detectObjects(cv::Mat &img, std::vector<BoundingBox> &bBoxes, float confThr
     vector<int> classIds;
     vector<float> confidences;
     vector<cv::Rect> boxes;
-    for (size_t i = 0; i < netOutput.size(); ++i) {
-        float *data = (float *) netOutput[i].data;
-        for (int j = 0; j < netOutput[i].rows; ++j, data += netOutput[i].cols) {
-            cv::Mat scores = netOutput[i].row(j).colRange(5, netOutput[i].cols);
+    for (const auto &output : netOutput) {
+        const auto *data = (float *) output.data;
+        for (int j = 0; j < output.rows; ++j, data += output.cols) {
+            cv::Mat scores = output.row(j).colRange(5, output.cols);
             cv::Point classId;
             double confidence;
 
             // Get the value and location of the maximum score
             cv::minMaxLoc(scores, 0, &confidence, 0, &classId);
-            if (confidence > confThreshold) {
-                cv::Rect box;
-                int cx, cy;
-                cx = (int) (data[0] * img.cols);
-                cy = (int) (data[1] * img.rows);
-                box.width = (int) (data[2] * img.cols);
-                box.height = (int) (data[3] * img.rows);
-                box.x = cx - box.width / 2; // left
-                box.y = cy - box.height / 2; // top
 
-                boxes.push_back(box);
-                classIds.push_back(classId.x);
-                confidences.push_back((float) confidence);
-            }
+            // drop all non-car classes.
+            if (classId.x != carClass) continue;
+            if (confidence <= confThreshold || classId.x != carClass) continue;
+
+            cv::Rect box;
+            int cx, cy;
+            cx = (int) (data[0] * img.cols);
+            cy = (int) (data[1] * img.rows);
+            box.width = (int) (data[2] * img.cols);
+            box.height = (int) (data[3] * img.rows);
+            box.x = cx - box.width / 2; // left
+            box.y = cy - box.height / 2; // top
+
+            boxes.push_back(box);
+            classIds.push_back(classId.x);
+            confidences.push_back((float) confidence);
         }
     }
 

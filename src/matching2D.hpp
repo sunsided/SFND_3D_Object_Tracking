@@ -1,4 +1,3 @@
-
 #ifndef matching2D_hpp
 #define matching2D_hpp
 
@@ -20,19 +19,25 @@
 #include "dataStructures.h"
 
 
-void detKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis = false);
+void detectKeypointsHarris(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask,
+                           bool bVis = false, bool verbose = false);
 
-void detKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, bool bVis = false);
+void detectKeypointsShiTomasi(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask,
+                              bool bVis = false, bool verbose = false);
 
 void
-detKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, std::string detectorType, bool bVis = false);
+detectKeypointsModern(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, const cv::Mat &mask,
+                      const std::string &detectorType, bool bVis = false, bool verbose = false);
 
 void
-descKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors, std::string descriptorType);
+describeKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img, cv::Mat &descriptors,
+                  const std::string &descriptorType,
+                  bool verbose);
 
-void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::KeyPoint> &kPtsRef, cv::Mat &descSource,
-                      cv::Mat &descRef,
-                      std::vector<cv::DMatch> &matches, std::string descriptorType, std::string matcherType,
-                      std::string selectorType);
+void matchDescriptors(std::vector<cv::KeyPoint> &kPtsSource, std::vector<cv::KeyPoint> &kPtsRef,
+                      cv::Mat &descSource, cv::Mat &descRef, std::vector<cv::DMatch> &matches,
+                      const std::string &descriptorType, const std::string &matcherType,
+                      const std::string &selectorType,
+                      bool verbose);
 
 #endif /* matching2D_hpp */

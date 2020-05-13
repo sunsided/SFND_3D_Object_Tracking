@@ -8,14 +8,14 @@
 
 using namespace std;
 
-// remove Lidar points based on min. and max distance in X, Y and Z
+// remove LiDAR points based on min. and max distance in X, Y and Z
 void cropLidarPoints(std::vector<LidarPoint> &lidarPoints, float minX, float maxX, float maxY, float minZ, float maxZ,
                      float minR) {
     std::vector<LidarPoint> newLidarPts;
     for (auto it = lidarPoints.begin(); it != lidarPoints.end(); ++it) {
 
         if ((*it).x >= minX && (*it).x <= maxX && (*it).z >= minZ && (*it).z <= maxZ && (*it).z <= 0.0 &&
-            abs((*it).y) <= maxY && (*it).r >= minR)  // Check if Lidar point is outside of boundaries
+            abs((*it).y) <= maxY && (*it).r >= minR)  // Check if LiDAR point is outside of boundaries
         {
             newLidarPts.push_back(*it);
         }
@@ -25,7 +25,7 @@ void cropLidarPoints(std::vector<LidarPoint> &lidarPoints, float minX, float max
 }
 
 
-// Load Lidar points from a given location and store them in a vector
+// Load LiDAR points from a given location and store them in a vector
 void loadLidarFromFile(vector<LidarPoint> &lidarPoints, string filename) {
     // allocate 4 MB buffer (only ~130*4*4 KB are needed)
     unsigned long num = 1000000;
@@ -62,7 +62,7 @@ void showLidarTopview(std::vector<LidarPoint> &lidarPoints, cv::Size worldSize, 
     // create topview image
     cv::Mat topviewImg(imageSize, CV_8UC3, cv::Scalar(0, 0, 0));
 
-    // plot Lidar points into image
+    // plot LiDAR points into image
     for (auto it = lidarPoints.begin(); it != lidarPoints.end(); ++it) {
         float xw = (*it).x; // world position in m with x facing forward from sensor
         float yw = (*it).y; // world position in m with y facing left from sensor
