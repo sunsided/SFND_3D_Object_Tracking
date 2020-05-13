@@ -146,3 +146,48 @@ provide a more stable focus area for our computation that has
 - a lower chance of providing stray LiDAR points (due to reduced region size),
 - a higher signal strength due to high reflectivity of license plates in general,
 - less variance in the X coordinates. 
+
+In practice, LiDAR points that lie within the same ROI may still
+belong to different physical objects, e.g. when the LiDAR "overshoots"
+the object in front of the ego car and measures a target further way.
+Using the median point may not be helpful in this situation and e.g.
+a quantile based approach could work better.
+
+## Computing Camera-based Time-to-Collision
+
+In addition to the LiDAR-based time TTC estimation, a purely camera-based
+estimation was added as well. In here, the relative change in distances
+between (matched, meaningful) keypoints across frames is observed in order
+to determine an approximate change in scale in the image plane.
+
+For this, we're clustering all keypoint matches that belong to the
+ROI of choice in `clusterKptMatchesWithROI()` and ensure that we only
+consider keypoints that did not jump more than a defined threshold,
+e.g. 25% of the average distance of keypoints. This ensures that
+no wildly mismatched keypoint will throw off the calculation.
+
+We can now relate changes in the projected image with distances in the real
+world by utilizing the fact that focal length and physical distance
+cancel out. This - in combination with the constant velocity equation - 
+leaves us with the following rather cute approximation in `computeTTCCamera()`:
+
+```cpp
+const auto dT = 1 / frameRate;
+TTC = -dT / (1 - distanceRatio);
+```
+
+Again, the median measured distance ratio can be used to obtain a stable
+estimate. Care needs to be taken, however, not to try to relate
+keypoints that are too close together (as this may result in a division
+by a very small number when trying to determine the distance ratio)
+and that the scales actually change. 
+
+![](.readme/ttc.jpg)
+
+If no scale change occurs, the
+distance ratio will be one and yield a division by zero.
+Treating these situations as an "infinite" TTC is reasonable, as it
+does take an infinite amount of time for two equally fast moving
+objects to collide.
+
+![](.readme/camera-ttc-inf.jpg)
