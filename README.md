@@ -147,6 +147,21 @@ provide a more stable focus area for our computation that has
 - a higher signal strength due to high reflectivity of license plates in general,
 - less variance in the X coordinates. 
 
+As mentioned above, in order to determine the the previous and current X
+coordinates, the median X coordinate is selected for this calculation
+via `getMedianPointByXCoordinate()`:
+
+```cpp
+const auto medianPre = getMedianPointByXCoordinate(lidarPointsPrev);
+const auto prevX = medianPre.x;
+
+const auto medianCurr = getMedianPointByXCoordinate(lidarPointsCurr);
+const auto currX = medianCurr.x;
+```
+
+This should be a reasonable estimate of the real distances, as it is
+robust against outliers (unlike e.g. the mean).
+
 In practice, LiDAR points that lie within the same ROI may still
 belong to different physical objects, e.g. when the LiDAR "overshoots"
 the object in front of the ego car and measures a target further way.
@@ -164,11 +179,55 @@ For this, we're clustering all keypoint matches that belong to the
 ROI of choice in `clusterKptMatchesWithROI()` and ensure that we only
 consider keypoints that did not jump more than a defined threshold,
 e.g. 25% of the average distance of keypoints. This ensures that
-no wildly mismatched keypoint will throw off the calculation.
+no wildly mismatched keypoint will throw off the calculation:
+
+```cpp
+const auto averageDistance = containedPointMeanDistance(
+    boundingBox, kptMatches, kptsPrev, kptsCurr);
+const auto tolerance = averageDistance * 1.25;
+
+for (const auto &match : kptMatches) {
+    // ...
+    if (!boundingBox.roi.contains(currPt.pt)) continue;
+    const auto d = cv::norm(currPt.pt - prevPt.pt);
+    if (d >= tolerance) continue;
+    //...
+    bounding_box.kptMatches.push_back(match);
+}
+```
 
 We can now relate changes in the projected image with distances in the real
 world by utilizing the fact that focal length and physical distance
-cancel out. This - in combination with the constant velocity equation - 
+cancel out.
+
+Care needs to be taken, however, not to try to relate
+keypoints that are too close together (as this may result in a division
+by a very small number when trying to determine the distance ratio)
+and that the scales actually change. 
+
+```cpp
+const auto minDistPx = 100.0; // minimum required distance in pixels
+const auto epsilon = 1e-4;    // smallest allowed divisor
+
+for (auto it1 = kptMatches.begin(); it1 != kptMatches.end() - 1; ++it1) {
+    const auto currKpToken, prevKpToken = // ...
+    
+    for (auto it2 = kptMatches.begin() + 1; it2 != kptMatches.end(); ++it2) {
+        const auto currKp, prevKp = // ...
+
+        const auto distCurr = cv::norm(currKpToken.pt - currKp.pt);
+        const auto distPrev = cv::norm(prevKpToken.pt - prevKp.pt);
+
+        // avoid division by zero
+        if (distPrev <= epsilon || distCurr < minDistPx) continue;
+
+        const auto distRatio = distCurr / distPrev;
+        distanceRatios.push_back(distRatio);
+    }
+}
+```
+
+This - in combination with the constant velocity equation - 
 leaves us with the following rather cute approximation in `computeTTCCamera()`:
 
 ```cpp
@@ -176,11 +235,17 @@ const auto dT = 1 / frameRate;
 TTC = -dT / (1 - distanceRatio);
 ```
 
-Again, the median measured distance ratio can be used to obtain a stable
-estimate. Care needs to be taken, however, not to try to relate
-keypoints that are too close together (as this may result in a division
-by a very small number when trying to determine the distance ratio)
-and that the scales actually change. 
+Again, the median measured distance ratio is used to obtain a stable
+estimate:
+
+```cpp
+std::sort(distanceRatios.begin(), distanceRatios.end());
+const auto medianIndex = distanceRatios.size() / 2;
+const auto distanceRatio = (distanceRatios.size() & 1U) == 1U
+                           ? distanceRatios[medianIndex]
+                           : (distanceRatios[medianIndex - 1] + distanceRatios[medianIndex]) / 2.0;
+```
+ 
 
 ![](.readme/ttc.jpg)
 
