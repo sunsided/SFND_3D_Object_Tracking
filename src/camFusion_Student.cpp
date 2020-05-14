@@ -41,7 +41,7 @@ namespace {
 
         const auto medianIndex = points.size() / 2;
 
-        const auto oddNumberOfPoints = (points.size() & 1U) == 1;
+        const auto oddNumberOfPoints = (points.size() & 1U) == 1U;
         assert((points.size() % 2 != 0) == oddNumberOfPoints);
 
         if (oddNumberOfPoints) {
@@ -205,8 +205,9 @@ show3DObjects(const std::string &tag, std::vector<BoundingBox> &boundingBoxes, c
 void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev,
                               std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches) {
 
-    const double averageDistance = containedPointMeanDistance(boundingBox, kptMatches, kptsPrev, kptsCurr);
-    const double tolerance = averageDistance * 1.25;
+    const auto averageDistance = containedPointMeanDistance(
+            boundingBox, kptMatches, kptsPrev, kptsCurr);
+    const auto tolerance = averageDistance * 1.25;
 
     for (const auto &match : kptMatches) {
         const auto currPt = kptsCurr[match.trainIdx];
@@ -270,9 +271,9 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
     // Use the median distance ratio to obtain a stable value.
     const auto medianIndex = distanceRatios.size() / 2;
     std::sort(distanceRatios.begin(), distanceRatios.end());
-    const auto distanceRatio = distanceRatios.size() % 2 == 0
-                               ? (distanceRatios[medianIndex - 1] + distanceRatios[medianIndex]) / 2.0
-                               : distanceRatios[medianIndex];
+    const auto distanceRatio = (distanceRatios.size() & 1U) == 1U
+                               ? distanceRatios[medianIndex]
+                               : (distanceRatios[medianIndex - 1] + distanceRatios[medianIndex]) / 2.0;
 
     // Note that if the median distance ratio is 1 (e.g. because no keypoints change),
     // then no velocity can be observed and the function below would result in a division by zero.
