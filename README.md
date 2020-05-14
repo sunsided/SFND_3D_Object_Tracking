@@ -239,3 +239,77 @@ median distance).
 
 I am concluding that using a single model alone in combination with
 a constant velocity calculation just isn't good enough.
+
+## Keypoint vs. LiDAR Performance Evaluation
+
+In [2D Feature Tracking](https://github.com/sunsided/SFND_2D_Feature_Tracking),
+the following detector / descriptor combinations were suggested:
+
+- FAST with BRIEF descriptors,
+- FAST with ORB descriptors (or both), as well as
+- ORB with BRIEF descriptors
+
+In addition, the Shi Thomasi + BRIEF option, as well as AKAZE/AKAZE were tested as well.
+
+| Frame | LiDAR | FAST + BRIEF | FAST + ORB | ORB + BRIEF | Shi Thomasi + BRIEF | AKAZE + AKAZE |
+|-------|-------|--------------|------------|-------------|---------------------|---------------|
+| 1     | 12.51 | 12.59        | 11.67      | 49.50       | 14.01               | 14.17         |
+| 2     | 12.61 | 12.95        | 10.51      | -           | 12.89               | 14.40         |
+| 3     | 14.09 | 12.33        | 17.04      | -6725.56    | 11.42               | 12.96         |
+| 4     | 16.68 | 13.67        | 13.99      | 15.65       | 13.58               | 14.22         |
+| 5     | 15.74 | -            | 100.98     | 163.77      | 13.36               | 16.52         |
+| 6     | 12.78 | 41.78        | 55.97      | -           | 13.15               | 16.67         |
+| 7     | 11.98 | 12.08        | 13.10      | 14.84       | 16.69               | 16.91         |
+| 8     | 13.12 | 12.36        | 12.56      | -           | 15.32               | 14.15         |
+| 9     | 13.02 | 13.92        | 13.93      | -           | 11.70               | 13.85         |
+| 10    | 11.17 | 17.43        | 13.46      | -           | 14.82               | 11.58         |
+| 11    | 12.80 | 14.50        | 14.59      | 116.07      | 12.03               | 12.21         |
+| 12    | 8.95  | 12.84        | 12.73      | 17.19       | 11.89               | 14.11         |
+| 13    | 9.96  | 12.73        | 12.14      | 29.16       | 11.86               | 10.84         |
+| 14    | 9.59  | 13.01        | 10.93      | 28.82       | 11.24               | 10.52         |
+| 15    | 8.52  | 12.30        | 12.01      | 19.39       | 12.90               | 10.19         |
+| 16    | 9.51  | 12.65        | 11.48      | 22.70       | 12.05               | 10.21         |
+| 17    | 9.61  | 11.30        | 12.14      | 12.50       | 13.60               | 9.20          |
+| 18    | 8.39  | 13.79        | 13.78      | 100.02      | 8.58                | 10.59         |
+
+It as immediately obvious that an ORB detector (as was implied
+in the [2D Feature Tracking](https://github.com/sunsided/SFND_2D_Feature_Tracking) repo)
+is just not able to generate key points suited for the task at hand,
+at least given the default detector configuration.
+
+Ruling out ORB as a detector (and using 2nd-order B-splines for plotting
+the values - I'm aware I shouldn't) here's how it unfolds.
+When squinting real hard we can observe a collective upwards trend at
+around t=4 to t=8, followed by a downward trend afterwards.
+Apart from AKAZE, which generally tends to follow the LiDAR estimates
+more closely than the other combinations, all the image-based
+estimates appear to be off by about two seconds. 
+
+![](.readme/ttc-estimate-comparison.png)
+
+Indeed, when observing the MSE in relation to the LiDAR estimates,
+the AKAZE detector/descriptor combination performs best, with the 
+Shi Thomasi + BRIEF combinations following up:
+
+| Frame   | FAST + BRIEF | FAST + ORB | Shi Thomasi + BRIEF | AKAZE + AKAZE |
+|---------|--------------|------------|---------------------|---------------|
+| 1       | 0.08         | 0.84       | 1.5                 | 1.66          |
+| 2       | 0.34         | 2.1        | 0.28                | 1.79          |
+| 3       | 1.76         | 2.95       | 2.67                | 1.13          |
+| 4       | 3.01         | 2.69       | 3.1                 | 2.46          |
+| 5       |              | 85.24      | 2.38                | 0.77          |
+| 6       | 29           | 43.19      | 0.37                | 3.89          |
+| 7       | 0.1          | 1.12       | 4.71                | 4.93          |
+| 8       | 0.76         | 0.55       | 2.2                 | 1.03          |
+| 9       | 0.9          | 0.91       | 1.32                | 0.83          |
+| 10      | 6.26         | 2.29       | 3.65                | 0.41          |
+| 11      | 1.7          | 1.79       | 0.77                | 0.59          |
+| 12      | 3.89         | 3.78       | 2.94                | 5.16          |
+| 13      | 2.77         | 2.18       | 1.9                 | 0.87          |
+| 14      | 3.42         | 1.34       | 1.65                | 0.93          |
+| 15      | 3.78         | 3.49       | 4.38                | 1.67          |
+| 16      | 3.14         | 1.97       | 2.54                | 0.70          |
+| 17      | 1.69         | 2.53       | 3.99                | 0.41          |
+| 18      | 5.4          | 5.39       | 0.19                | 2.2           |
+|         |              |            |                     |               |
+| **MSE** | **4**        | **9.13**   | **2.25**            | **1.74**      |

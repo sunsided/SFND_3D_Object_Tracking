@@ -21,6 +21,8 @@
 #include "lidarData.hpp"
 #include "camFusion.hpp"
 
+// #define VERBOSE
+
 
 void visualizeMatches(const std::_Deque_iterator<DataFrame, DataFrame &, DataFrame *>::_Self &currentDataBuffer,
                       const std::_Deque_iterator<DataFrame, DataFrame &, DataFrame *>::_Self &previousDataBuffer,
@@ -145,7 +147,9 @@ int main(int argc, const char *argv[]) {
         auto previousDataBuffer = (dataBuffer.end() - 2);
         const auto hasPreviousDataBuffer = dataBuffer.size() > 1;
 
+#ifdef VERBOSE
         std::cout << "#1 : LOAD IMAGE INTO BUFFER done" << std::endl;
+#endif
 
 
         /* DETECT & CLASSIFY OBJECTS */
@@ -156,8 +160,9 @@ int main(int argc, const char *argv[]) {
                       nmsThreshold,
                       yoloBasePath, yoloClassesFile, yoloModelConfiguration, yoloModelWeights, bVis);
 
+#ifdef VERBOSE
         std::cout << "#2 : DETECT & CLASSIFY OBJECTS done" << std::endl;
-
+#endif
 
         /* CROP LiDAR POINTS */
 
@@ -171,7 +176,9 @@ int main(int argc, const char *argv[]) {
         cropLidarPoints(lidarPoints, minX, maxX, maxY, minZ, maxZ, minR);
         currentDataBuffer->lidarPoints = lidarPoints;
 
+#ifdef VERBOSE
         std::cout << "#3 : CROP LiDAR POINTS done" << std::endl;
+#endif
 
         /* CLUSTER LiDAR POINT CLOUD */
 
@@ -191,7 +198,9 @@ int main(int argc, const char *argv[]) {
         }
         bVis = false;
 
+#ifdef VERBOSE
         std::cout << "#4 : CLUSTER LiDAR POINT CLOUD done" << std::endl;
+#endif
 
         /* DETECT IMAGE KEYPOINTS */
 
@@ -210,7 +219,7 @@ int main(int argc, const char *argv[]) {
 
         // extract 2D keypoints from current image
         std::vector<cv::KeyPoint> keypoints; // create empty feature list for current image
-        std::string detectorType = "FAST";
+        std::string detectorType = "AKAZE";
 
         if (detectorType == "SHITOMASI") {
             detectKeypointsShiTomasi(keypoints, imgGray, keypointMask, false, false);
@@ -241,21 +250,23 @@ int main(int argc, const char *argv[]) {
         // push keypoints and descriptor for current frame to end of data buffer
         currentDataBuffer->keypoints = keypoints;
 
+#ifdef VERBOSE
         std::cout << "#5 : DETECT KEYPOINTS done" << std::endl;
-
+#endif
 
         /* EXTRACT KEYPOINT DESCRIPTORS */
 
         cv::Mat descriptors;
-        std::string descriptorType = "BRIEF"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+        std::string descriptorType = "AKAZE"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
         describeKeypoints(currentDataBuffer->keypoints, currentDataBuffer->cameraImg, descriptors,
                           descriptorType, false);
 
         // push descriptors for current frame to end of data buffer
         currentDataBuffer->descriptors = descriptors;
 
+#ifdef VERBOSE
         std::cout << "#6 : EXTRACT DESCRIPTORS done" << std::endl;
-
+#endif
 
         if (dataBuffer.size() > 1) // wait until at least two images have been processed
         {
@@ -264,12 +275,12 @@ int main(int argc, const char *argv[]) {
 
             std::vector<cv::DMatch> matches;
             std::string matcherType = "MAT_FLANN";        // MAT_BF, MAT_FLANN
-            std::string descriptorType = "DES_BINARY"; // DES_BINARY, DES_HOG
+            std::string descriptorMetaType = "DES_BINARY"; // DES_BINARY, DES_HOG
             std::string selectorType = "SEL_KNN";       // SEL_NN, SEL_KNN
 
             matchDescriptors(previousDataBuffer->keypoints, currentDataBuffer->keypoints,
                              previousDataBuffer->descriptors, currentDataBuffer->descriptors,
-                             matches, descriptorType, matcherType, selectorType, false);
+                             matches, descriptorMetaType, matcherType, selectorType, false);
 
             // store matches in current data frame
             currentDataBuffer->kptMatches = matches;
@@ -282,8 +293,9 @@ int main(int argc, const char *argv[]) {
             }
             bVis = false;
 
+#ifdef VERBOSE
             std::cout << "#7 : MATCH KEYPOINT DESCRIPTORS done" << std::endl;
-
+#endif
 
             /* TRACK 3D OBJECT BOUNDING BOXES */
 
@@ -299,8 +311,9 @@ int main(int argc, const char *argv[]) {
             // store matches in current data frame
             currentDataBuffer->bbMatches = bbBestMatches;
 
+#ifdef VERBOSE
             std::cout << "#8 : TRACK 3D OBJECT BOUNDING BOXES done" << std::endl;
-
+#endif
 
             /* COMPUTE TTC ON OBJECT IN FRONT */
 
@@ -312,12 +325,14 @@ int main(int argc, const char *argv[]) {
                 auto *currBB = getBoxById(currentDataBuffer->boundingBoxes, it1->second);
                 auto *prevBB = getBoxById(previousDataBuffer->boundingBoxes, it1->first);
 
+#if 0
                 std::cout << "Matched box #" << prevBB->boxID
                           << " (" << prevBB->lidarPoints.size() << " LiDAR points)"
                           << " with #"
                           << currBB->boxID
                           << " (" << currBB->lidarPoints.size() << " LiDAR points)"
                           << std::endl;
+#endif
 
                 // compute TTC for current match
                 if (!currBB->lidarPoints.empty() &&
@@ -339,7 +354,13 @@ int main(int argc, const char *argv[]) {
                                      currBB->kptMatches, sensorFrameRate, ttcCamera);
                     //// EOF STUDENT ASSIGNMENT
 
-                    bVis = true;
+                    std::cout << "#" << imgIndex << " "
+                              << detectorType << " + " << descriptorType
+                              << ": TTC LiDAR=" << ttcLidar
+                              << ", TTC camera=" << ttcCamera
+                              << std::endl;
+
+                    bVis = false;
                     if (bVis) {
                         cv::Mat visImg = currentDataBuffer->cameraImg.clone();
                         showLidarImgOverlay(visImg, currBB->lidarPoints, P_rect_00, R_rect_00, RT, &visImg);
