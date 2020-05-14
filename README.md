@@ -191,3 +191,51 @@ does take an infinite amount of time for two equally fast moving
 objects to collide.
 
 ![](.readme/camera-ttc-inf.jpg)
+
+## Performance Evaluation
+
+When inspecting the LiDAR point cloud over time we can verify
+that the ego car is constantly approaching the car in front of it,
+thereby reducing distance. TTC estimates appear to be reasonably sane
+(supported by the median filtering),
+although in several frames the LiDAR TTC estimate jumps up a couple
+of seconds, then down again, spanning a range of about four seconds. 
+
+![](.readme/screencap.webp)
+
+In a first occurrence, the TTC estimate jumps to 16.69 s, then
+drops back to 12.78s despite no drastic change in distance can be observed:
+
+TTC = 16.69 s
+![TTC 16.69 s](.readme/lidar-ttc-16.69s.png)
+
+TTC = 12.78 seconds
+![TTC 12.78 s](.readme/lidar-ttc-12.78s.png)
+
+Note that the above frames do not follow each other immediately,
+but in close vicinity.
+
+In another instance, the TTC estimate jumps up to 12.81 s, then
+drops down to 8.86 s in the next frame:
+
+TTC = 12.81 seconds
+![12.81 s](.readme/lidar-ttc-12.81s.png)
+
+TTC = 8.95 seconds
+![8.96s](.readme/lidar-ttc-8.96s.png)
+
+Specifically the last example shows an interesting effect: Even though
+the car is closer to the ego car in the first frame (7.20 m) than it is
+in the second one (7.27 m), the estimate goes down - indicating closer
+proximity. While the TTC value for the second frame might be correct,
+it isn't entirely consistent with the value before.
+
+There, we measured a (closest) distance
+of 7.39 m from the ego car, indicating that either party moved by 0.19 m
+between two video frames. We can see that in one of the frames (top right),
+a stray LiDAR point throws off the minimum distance estimate (even though
+this should not affect the velocity calculation due to the use of the
+median distance).
+
+I am concluding that using a single model alone in combination with
+a constant velocity calculation just isn't good enough.

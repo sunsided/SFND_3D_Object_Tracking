@@ -182,12 +182,12 @@ int main(int argc, const char *argv[]) {
 
         // Visualize 3D objects
         bVis = false;
-        if (bVis) {
+        if (true) {
             if (hasPreviousDataBuffer) {
                 show3DObjects("Previous", previousDataBuffer->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000),
                               false);
             }
-            show3DObjects("Current", currentDataBuffer->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000), true);
+            show3DObjects("Current", currentDataBuffer->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000), false);
         }
         bVis = false;
 
@@ -275,7 +275,7 @@ int main(int argc, const char *argv[]) {
             currentDataBuffer->kptMatches = matches;
 
             // visualize matches between current and previous image
-            bVis = false;
+            bVis = true;
             if (bVis && hasPreviousDataBuffer) {
                 visualizeMatches(currentDataBuffer, previousDataBuffer, matches);
 
@@ -428,8 +428,7 @@ void visualizeMatches(const std::_Deque_iterator<DataFrame, DataFrame &, DataFra
                     std::vector<char>(), drawFlags);
 
     std::string windowName = "Matching keypoints between two camera images";
-    cv::namedWindow(windowName, 7);
+    cv::namedWindow(windowName, cv::WINDOW_NORMAL);
     cv::imshow(windowName, matchImg);
-    cv::waitKey(0);
 }
 
