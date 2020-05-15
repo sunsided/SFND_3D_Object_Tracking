@@ -2,8 +2,8 @@
 
 This project is meant as an introduction to camera-based Sensor Fusion for Self-Driving Cars. The main points of it are:
 
-- **Estimating Velocity from LiDAR points** and
-- **Estimating Velocity from camera keypoints**.
+- **Estimating velocity from LiDAR points** and
+- **Estimating velocity from camera keypoints**.
 
 This is achieved by
 
