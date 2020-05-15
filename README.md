@@ -1,4 +1,4 @@
-# 3D Object Tracking for Time-ot-Collision estimation
+# 3D Object Tracking for Time-to-Collision estimation
 
 ![](.readme/ttc.jpg)
 
