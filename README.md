@@ -1,4 +1,6 @@
-# 3D Object Tracking
+# 3D Object Tracking for Time-ot-Collision estimation
+
+![](.readme/ttc.jpg)
 
 This project is meant as an introduction to camera-based Sensor Fusion for Self-Driving Cars. The main points of it are:
 
