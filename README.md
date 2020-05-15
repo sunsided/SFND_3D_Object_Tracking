@@ -16,15 +16,15 @@ This is achieved by
 - **Tracking ROI over time** by matching keypoints,
 - Determining **velocities by observing distance ratio changes** in image space.
 
-<img src="images/course_code_structure.png" width="779" height="414" />
+![](images/course_code_structure-cropped.png)
 
-In this final project, you will implement the missing parts in the schematic.
-To do this, you will complete four major tasks: 
+In this follow-up project from [SFND_2D_Feature_Tracking](https://github.com/sunsided/SFND_2D_Feature_Tracking), the missing partsin the schematic are implemented.
+To do this, four major parts were adressed:
 
-1. First, you will develop a way to match 3D objects over time by using keypoint correspondences. 
-2. Second, you will compute the TTC based on LiDAR measurements. 
-3. You will then proceed to do the same using the camera, which requires to first associate keypoint matches to regions of interest and then to compute the TTC based on those matches. 
-4. And lastly, you will conduct various tests with the framework. Your goal is to identify the most suitable detector/descriptor combination for TTC estimation and also to search for problems that can lead to faulty measurements by the camera or LiDAR sensor. In the last course of this Nanodegree, you will learn about the Kalman filter, which is a great way to combine the two independent TTC measurements into an improved version which is much more reliable than a single sensor alone can be. But before we think about such things, let us focus on your final project in the camera course. 
+1. A way to match 3D objects over time by using keypoint correspondences is implemented.
+2. TTC based on LiDAR measurements is computed.
+3. TTC based on camera data is computed, which requires associations between keypoint matches and regions of interest.
+4. And lastly, various tests are conductured with the framework. The goal here is to identify the most suitable detector/descriptor combination for TTC estimation and also to search for problems that can lead to faulty measurements by the camera or LiDAR sensor.
 
 ## Basic Build Instructions
 
@@ -39,8 +39,6 @@ To do this, you will complete four major tasks:
   * All OSes: [click here for installation instructions](https://cmake.org/install/)
 * make >= 4.1 (Linux, Mac), 3.81 (Windows)
   * Linux: make is installed by default on most Linux distros
-  * Mac: [install Xcode command line tools to get make](https://developer.apple.com/xcode/features/)
-  * Windows: [Click here for installation instructions](http://gnuwin32.sourceforge.net/packages/make.htm)
 * Git LFS
   * Weight files are handled using [LFS](https://git-lfs.github.com/)
 * OpenCV >= 4.1
@@ -48,8 +46,8 @@ To do this, you will complete four major tasks:
   * The OpenCV 4.1.0 source code can be found [here](https://github.com/opencv/opencv/tree/4.1.0)
 * gcc/g++ >= 5.4
   * Linux: gcc / g++ is installed by default on most Linux distros
-  * Mac: same deal as make - [install Xcode command line tools](https://developer.apple.com/xcode/features/)
-  * Windows: recommend using [MinGW](http://www.mingw.org/)
+
+---
 
 ## Matching 3D Objects
 
