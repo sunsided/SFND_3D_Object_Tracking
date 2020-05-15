@@ -1,13 +1,18 @@
-# SFND 3D Object Tracking
+# 3D Object Tracking
 
-Welcome to the final project of the camera course.
-By completing all the lessons, you now have a solid understanding of
-keypoint detectors, descriptors, and methods to match them between
-successive images. Also, you know how to detect objects in an image
-using the YOLO deep-learning framework. And finally, you know how to
-associate regions in a camera image with LiDAR points in 3D space.
-Let's take a look at our program schematic to see what we already have
-accomplished and what's still missing.
+This project is meant as an introduction to camera-based Sensor Fusion for Self-Driving Cars. The main points of it are:
+
+- **Estimating Velocity from LiDAR points** and
+- **Estimating Velocity from camera keypoints**.
+
+This is achieved by
+
+- Using Deep Neural Networks to **generate Regions of Interest**,
+- **Combining LiDAR measurements with camera images** by projection between coordinate systems,
+- **Clustering LiDAR points based on ROI** in image space,
+- **Generating keypoint correspondences** between frames,
+- **Tracking ROI over time** by matching keypoints,
+- Determining **velocities by observing distance ratio changes** in image space.
 
 <img src="images/course_code_structure.png" width="779" height="414" />
 
@@ -64,7 +69,7 @@ result:
 
 ![](.readme/yolo-cars.png)
 
-Next, the LiDAR a point cloud obtained in `loadLidarFromFile()`
+Next, a point cloud obtained in `loadLidarFromFile()`
 from a [Velodyne HDL-64E](http://velodynelidar.com/lidar/hdlproducts/hdl64e.aspx) 
 sensor (data was given as part of the [KITTI](http://www.cvlibs.net/datasets/kitti/) dataset)
 was cropped in `cropLidarPoints()` to contain only points that lie
