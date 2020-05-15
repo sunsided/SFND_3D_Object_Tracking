@@ -358,7 +358,7 @@ estimates appear to be off by about two seconds.
 
 Indeed, when observing the mean squared error (MSE) in relation to the LiDAR estimates,
 the AKAZE detector/descriptor combination performs best, with the 
-Shi Thomasi + BRIEF combinations following up:
+Shi Thomasi + BRIEF combination following up:
 
 | Frame   | FAST + BRIEF | FAST + ORB | Shi Thomasi + BRIEF | AKAZE + AKAZE |
 |---------|--------------|------------|---------------------|---------------|
