@@ -356,7 +356,7 @@ estimates appear to be off by about two seconds.
 
 ![](.readme/ttc-estimate-comparison.png)
 
-Indeed, when observing the MSE in relation to the LiDAR estimates,
+Indeed, when observing the mean squared error (MSE) in relation to the LiDAR estimates,
 the AKAZE detector/descriptor combination performs best, with the 
 Shi Thomasi + BRIEF combinations following up:
 
