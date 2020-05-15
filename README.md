@@ -187,8 +187,7 @@ e.g. 25% of the average distance of keypoints. This ensures that
 no wildly mismatched keypoint will throw off the calculation:
 
 ```cpp
-const auto averageDistance = containedPointMeanDistance(
-    boundingBox, kptMatches, kptsPrev, kptsCurr);
+const auto averageDistance = containedPointMeanDistance(boundingBox, kptMatches, kptsPrev, kptsCurr);
 const auto tolerance = averageDistance * 1.25;
 
 for (const auto &match : kptMatches) {
